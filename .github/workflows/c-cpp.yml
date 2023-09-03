@@ -1,0 +1,43 @@
+name: Build raylib
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        buildConfig: [Debug, Release]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Install prerequisites
+      run: |
+        if [[ "${{ runner.os }}" == "Windows" ]]; then
+          choco install mingw
+        elif [[ "${{ runner.os }}" == "Linux" ]]; then
+          sudo apt update && sudo apt install -y gcc x86_64-linux-gnu
+        fi
+
+    - name: Create Build Directory
+      run: mkdir build
+
+    - name: Configure CMake
+      run: |
+        cd build
+        cmake .. -DCUSTOMIZE_BUILD=ON -DWITH_PIC=ON -DBUILD_SHARED_LIBS=OFF -DINCLUDE_EVERYTHING=ON -DBUILD_EXAMPLES=OFF -DCMAKE_BUILD_TYPE=${{ matrix.buildConfig }}
+
+    - name: Build
+      run: |
+        cd build
+        cmake --build . --config ${{ matrix.buildConfig }}
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: raylib-${{ matrix.os }}-${{ matrix.buildConfig }}
+        path: build/**/*.*
